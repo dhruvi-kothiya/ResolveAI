@@ -37,6 +37,13 @@ public class TicketsController : ControllerBase
             DepartmentId = request.DepartmentId,
             CreatedAt = DateTime.UtcNow
         };
+        // Simulated AI Logic
+        if (ticket.Description.Contains("VPN", StringComparison.OrdinalIgnoreCase) ||
+        ticket.Description.Contains("Network", StringComparison.OrdinalIgnoreCase))
+        {
+            ticket.Priority = TicketPriority.High; // AI એ નક્કી કર્યું કે આ High છે
+            ticket.IsAiProcessed = true;
+        }
 
         _context.Tickets.Add(ticket);
         await _context.SaveChangesAsync();
@@ -45,6 +52,32 @@ public class TicketsController : ControllerBase
         {
             Message = "Ticket Created Successfully!",
             TicketNumber = ticket.TicketNumber
+        });
+
+    }
+    // 
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] TicketStatus newStatus)
+    {
+        var ticket = await _context.Tickets.FindAsync(id);
+        if (ticket == null) return NotFound();
+
+        ticket.Status = newStatus;
+
+        if (newStatus == TicketStatus.Resolved)
+        {
+            ticket.ResolvedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        // આ રીતે લખશો તો જ Postman માં High અને True દેખાશે
+        return Ok(new
+        {
+            Message = "Ticket Created Successfully!",
+            TicketNumber = ticket.TicketNumber,
+            Priority = ticket.Priority.ToString(), // "High" 
+            AiProcessed = ticket.IsAiProcessed,     // true 
         });
     }
 }
