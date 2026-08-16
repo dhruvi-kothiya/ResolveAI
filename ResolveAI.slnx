@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="D:/ResolveAI/ResolveAI.Domain/ResolveAI.Domain.csproj" />
+  <Project Path="D:/ResolveAI/src/ResolveAI.Api/ResolveAI.Api.csproj" />
+  <Project Path="D:/ResolveAI/src/ResolveAI.Application/ResolveAI.Application.csproj" />
+  <Project Path="D:/ResolveAI/src/ResolveAI.Infrastructure/ResolveAI.Infrastructure.csproj" />
+</Solution>

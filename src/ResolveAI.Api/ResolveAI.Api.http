@@ -1,0 +1,21 @@
+@ResolveAI.Api_HostAddress = https://localhost:7254
+
+### user regi
+POST {{ResolveAI.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "meet@resolveai.com",
+  "password": "Password123!",
+  "firstName": "Meet",
+  "lastName": "Kothiya"
+}
+
+### user login
+POST {{ResolveAI.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "meet@resolveai.com",
+  "password": "Password123!"
+}
