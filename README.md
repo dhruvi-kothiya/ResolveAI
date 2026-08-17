@@ -104,7 +104,7 @@ The calculated deadline is stored in the `DueAt` field.
 ResolveAI follows **Clean Architecture** principles to keep the application scalable, maintainable, and loosely coupled.
 
 ```mermaid
-graph TD
+graph TD             
     Browser[Browser / Postman] --> API[ASP.NET Core Web API]
 
     API --> Application[Application Layer]
