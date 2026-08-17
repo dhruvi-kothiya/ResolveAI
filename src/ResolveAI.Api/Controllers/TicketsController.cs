@@ -21,26 +21,22 @@ public class TicketsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateTicket([FromBody] CreateTicketRequest request)
     {
-        // 1. Ticket number generate (INC-XXXX)
-        var ticketCount = _context.Tickets.Count() + 1;
-        var ticketNumber = $"INC-{1000 + ticketCount}";
-
-        // 2. Create new ticket object
+        // 1. Ticket object બનાવવો
         var ticket = new Ticket
         {
             Id = Guid.NewGuid(),
-            TicketNumber = ticketNumber,
+            TicketNumber = $"INC-{1000 + _context.Tickets.Count() + 1}",
             Title = request.Title,
             Description = request.Description,
             Status = TicketStatus.New,
-            Priority = TicketPriority.Medium, // Default Medium
+            Priority = TicketPriority.Medium,
             CreatedById = request.CreatedById,
             DepartmentId = request.DepartmentId,
             CreatedAt = DateTime.UtcNow
         };
 
-        // 3. AI Logic
-        // VPN અથવા Network હોય તો Priority High
+        // 2. AI Logic
+        // VPN અથવા Network issue હોય તો High Priority
         if (ticket.Description.Contains("VPN", StringComparison.OrdinalIgnoreCase) ||
             ticket.Description.Contains("Network", StringComparison.OrdinalIgnoreCase))
         {
@@ -48,21 +44,37 @@ public class TicketsController : ControllerBase
             ticket.IsAiProcessed = true;
         }
 
-        // 4. SLA Logic
+        // 3. SLA Logic
         // High Priority = 4 hours
-        // Medium/Other Priority = 24 hours
+        // Medium Priority = 24 hours
         ticket.DueAt = (ticket.Priority == TicketPriority.High)
                     ? DateTime.UtcNow.AddHours(4)
                     : DateTime.UtcNow.AddHours(24);
 
-        // 5. Save ticket into database
+        // 4. પહેલા ફક્ત Ticket save કરો
         _context.Tickets.Add(ticket);
         await _context.SaveChangesAsync();
 
-        // 6. Response
+        // 5. Ticket database માં save થઈ ગઈ છે
+        // હવે Notification બનાવો
+        var notification = new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = ticket.CreatedById,
+            TicketId = ticket.Id,
+            Message = $"તમારી નવી ટિકિટ {ticket.TicketNumber} સફળતાપૂર્વક બની ગઈ છે!",
+            CreatedAt = DateTime.UtcNow,
+            IsRead = false
+        };
+
+        // 6. Notification save કરો
+        _context.Notifications.Add(notification);
+        await _context.SaveChangesAsync();
+
+        // 7. Response
         return Ok(new
         {
-            Message = "Ticket Created Successfully!",
+            Message = "Ticket and Notification Created!",
             TicketNumber = ticket.TicketNumber,
             Priority = ticket.Priority.ToString(),
             AiProcessed = ticket.IsAiProcessed,
@@ -71,12 +83,12 @@ public class TicketsController : ControllerBase
     }
 
 
-    // બધી ટિકિટો જોવા માટે (Section 11)
+    // Section 11 - બધી ટિકિટો જોવા માટે
     [HttpGet]
     public async Task<IActionResult> GetAllTickets()
     {
         var tickets = await _context.Tickets
-            .OrderByDescending(t => t.CreatedAt) // નવી ટિકિટ ઉપર આવશે
+            .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
 
         return Ok(tickets);
