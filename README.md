@@ -1,31 +1,116 @@
 # ResolveAI - Enterprise AI-Powered IT Service Management
 
-ResolveAI is a professional portfolio product built with .NET 10 and SQL Server 2025. It uses AI (RAG) to automate IT support workflows.
+ResolveAI is a professional, enterprise-style AI-powered IT Service Management (ITSM) platform built with **.NET 10** and **SQL Server 2025**.
 
-## 🚀 Status: Phase 1, 2, 3 & 4 Completed
-- [x] **Phase 1 (Identity):** User Registration, Login, and JWT Security.
-- [x] **Phase 2 (Organization):** Departments and Teams management.
-- [x] **Phase 3 (Ticketing):** Ticket creation with INC-XXXX numbering.
-- [x] **Phase 4 (SLA Engine):** Automatic deadline calculation (High: 4h, Medium: 24h).
+The system is designed to automate IT support workflows using intelligent ticket classification, SLA management, secure authentication, and a scalable **Clean Architecture**.
 
+---
 
-## 🧠 Smart Features Added
-- **AI Classification:** Automatically detects "VPN" or "Network" issues and sets priority to 'High'.
-- **SLA Engine:** Business rules implemented for response and resolution times.
+## 🚀 Project Status
+
+### Phase 1, 2, 3 & 4 Completed
+
+- [x] **Phase 1 - Identity**
+  - User Registration
+  - User Login
+  - ASP.NET Core Identity
+  - JWT Authentication & Security
+
+- [x] **Phase 2 - Organization**
+  - Department Management
+  - Team Management
+  - Organization Structure
+
+- [x] **Phase 3 - Ticketing**
+  - Ticket Creation
+  - Automatic `INC-XXXX` Ticket Numbering
+  - Ticket Status Management
+  - AI-based Ticket Classification
+
+- [x] **Phase 4 - SLA Engine**
+  - Automatic SLA Deadline Calculation
+  - High Priority → 4 Hours
+  - Medium Priority → 24 Hours
+  - Automatic `DueAt` Calculation
+
+- [ ] **Phase 5 - Notifications**
+  - Real-time Alerts
+  - Email Notifications
+  - SignalR Integration
+
+---
+
+## 🧠 Smart Features
+
+### AI Priority Classification
+
+ResolveAI automatically analyzes the ticket description and identifies common critical IT issues.
+
+For example:
+
+- `VPN` issue → **High Priority**
+- `Network` issue → **High Priority**
+- Other issues → **Medium Priority**
+
+This helps IT teams identify critical tickets faster.
+
+### SLA Engine
+
+The SLA engine automatically calculates ticket deadlines based on priority:
+
+| Priority | SLA |
+|----------|-----|
+| High | 4 Hours |
+| Medium | 24 Hours |
+
+The calculated deadline is stored in the `DueAt` field.
+
+---
 
 ## 🛠 Tech Stack
-- **Backend:** .NET 10 (ASP.NET Core Web API)
-- **Architecture:** Clean Architecture (Domain, Application, Infrastructure, API)
-- **Database:** SQL Server 2025 (Native Vector Support)
-- **Security:** ASP.NET Core Identity + JWT Bearer Tokens
-- **Real-time:** SignalR (Planned)
-- **AI:** Semantic Kernel + RAG (Planned)
 
-## 🏗 Architecture Diagram
+### Backend
+- .NET 10
+- ASP.NET Core Web API
+- C#
+
+### Architecture
+- Clean Architecture
+- Domain Layer
+- Application Layer
+- Infrastructure Layer
+- API Layer
+
+### Database
+- SQL Server 2025
+- Entity Framework Core
+
+### Security
+- ASP.NET Core Identity
+- JWT Bearer Authentication
+
+### AI
+- Semantic Kernel
+- RAG (Retrieval-Augmented Generation)
+- AI-powered ticket classification
+
+### Real-Time Communication
+- SignalR *(Planned)*
+
+---
+
+## 🏗 Architecture
+
+ResolveAI follows **Clean Architecture** principles to keep the application scalable, maintainable, and loosely coupled.
+
 ```mermaid
 graph TD
-    Browser[Browser / Postman] --> API[ASP.NET Core API]
+    Browser[Browser / Postman] --> API[ASP.NET Core Web API]
+
     API --> Application[Application Layer]
+
     Application --> Domain[Domain Layer]
+
     Application --> Infrastructure[Infrastructure Layer]
+
     Infrastructure --> SQL[(SQL Server 2025)]
