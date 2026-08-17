@@ -1,4 +1,3 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +6,8 @@ using ResolveAI.Application.Interfaces;
 using ResolveAI.Domain.Entities;
 using ResolveAI.Infrastructure.Identity;
 using ResolveAI.Infrastructure.Persistence;
+using ResolveAI.Infrastructure.Repositories;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,7 @@ builder.Services.AddIdentity<User, Role>(options =>
 
 //  JWT Token Generator reister
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 
 //  JWT Authentication 
 var jwtSettings = builder.Configuration.GetSection("Jwt");

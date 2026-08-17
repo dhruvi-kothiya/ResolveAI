@@ -26,3 +26,4 @@ public class Ticket
     public Department? Department { get; set; }
     public DateTime DueAt { get; set; } // ticket last date
     public bool IsEscalated { get; set; } = false; // time over ?   
+}
