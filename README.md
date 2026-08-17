@@ -33,12 +33,11 @@ The system is designed to automate IT support workflows using intelligent ticket
   - Medium Priority → 24 Hours
   - Automatic `DueAt` Calculation
 
-- [ ] **Phase 5 - Notifications**
+- [X] **Phase 5 - Notifications**
   - Real-time Alerts
   - Email Notifications
   - SignalR Integration
-
----
+  - SQL logging completed
 
 ## 🧠 Smart Features
 
