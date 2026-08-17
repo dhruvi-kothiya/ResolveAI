@@ -8,6 +8,7 @@ ResolveAI is a professional portfolio product built with .NET 10 and SQL Server 
 - [x] **Phase 3 (Ticketing):** Ticket creation with INC-XXXX numbering.
 - [x] **Phase 4 (SLA Engine):** Automatic deadline calculation (High: 4h, Medium: 24h).
 
+
 ## 🧠 Smart Features Added
 - **AI Classification:** Automatically detects "VPN" or "Network" issues and sets priority to 'High'.
 - **SLA Engine:** Business rules implemented for response and resolution times.
