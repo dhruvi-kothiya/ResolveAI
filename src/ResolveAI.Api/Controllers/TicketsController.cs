@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ResolveAI.Application.DTOs;
 using ResolveAI.Domain.Entities;
 using ResolveAI.Domain.Enums;
@@ -67,6 +68,18 @@ public class TicketsController : ControllerBase
             AiProcessed = ticket.IsAiProcessed,
             Deadline = ticket.DueAt
         });
+    }
+
+
+    // બધી ટિકિટો જોવા માટે (Section 11)
+    [HttpGet]
+    public async Task<IActionResult> GetAllTickets()
+    {
+        var tickets = await _context.Tickets
+            .OrderByDescending(t => t.CreatedAt) // નવી ટિકિટ ઉપર આવશે
+            .ToListAsync();
+
+        return Ok(tickets);
     }
 
 
