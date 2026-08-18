@@ -19,24 +19,36 @@ public class DashboardController : ControllerBase
     [HttpGet("stats")]
     public async Task<IActionResult> GetStats()
     {
-        // SQL Server find num
         var stats = new DashboardStatsResponse
         {
             TotalTickets = await _context.Tickets.CountAsync(),
 
             OpenTickets = await _context.Tickets
-                .CountAsync(t => t.Status == ResolveAI.Domain.Enums.TicketStatus.New ||
-                                 t.Status == ResolveAI.Domain.Enums.TicketStatus.Open),
+                .CountAsync(t => t.Status != ResolveAI.Domain.Enums.TicketStatus.Resolved),
 
             ResolvedTickets = await _context.Tickets
                 .CountAsync(t => t.Status == ResolveAI.Domain.Enums.TicketStatus.Resolved),
 
             HighPriorityTickets = await _context.Tickets
-    .CountAsync(t => t.Priority == ResolveAI.Domain.Enums.TicketPriority.High),
+                .CountAsync(t => t.Priority == ResolveAI.Domain.Enums.TicketPriority.High),
 
             TotalDepartments = await _context.Departments.CountAsync()
         };
 
-        return Ok(stats);
+        // Category / Department wise ticket count
+        var ticketsByCategory = await _context.Tickets
+            .GroupBy(t => t.Department.Name)
+            .Select(g => new
+            {
+                Category = g.Key,
+                Count = g.Count()
+            })
+            .ToListAsync();
+
+        return Ok(new
+        {
+            OverallStats = stats,
+            CategoryBreakdown = ticketsByCategory
+        });
     }
 }
