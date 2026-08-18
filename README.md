@@ -39,6 +39,8 @@ The system is designed to automate IT support workflows using intelligent ticket
   - SignalR Integration
   - SQL logging completed
 
+  - [x] **Phase 6 - Dashboard & Analytics:** Real-time stats for total, open, and resolved tickets.
+
 ## 🧠 Smart Features
 
 ### AI Priority Classification
