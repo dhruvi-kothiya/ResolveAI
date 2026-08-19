@@ -18,6 +18,8 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
     public DbSet<Department> Departments { get; set; }
     public DbSet<Team> Teams { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<KnowledgeCategory> KnowledgeCategories { get; set; }
+    public DbSet<KnowledgeArticle> KnowledgeArticles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
