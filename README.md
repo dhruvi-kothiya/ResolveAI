@@ -41,6 +41,13 @@ The system is designed to automate IT support workflows using intelligent ticket
 
   - [x] **Phase 6 - Dashboard & Analytics:** Real-time stats for total, open, and resolved tickets.
 
+  - [x] **Phase 7 - Knowledge Base**
+  - Knowledge Categories (Troubleshooting, Guides)
+  - Article Publishing System
+  - Status Management (Draft, Published, Archived)
+  - Preparations for RAG (Retrieval-Augmented Generation)
+  - PDF Uploads and Ticket-to-Knowledge conversion completed.
+
 ## 🧠 Smart Features
 
 ### AI Priority Classification

@@ -20,4 +20,8 @@
     <ProjectReference Include="..\ResolveAI.Infrastructure\ResolveAI.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\Uploads\" />
+  </ItemGroup>
+
 </Project>
