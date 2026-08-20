@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ResolveAI.Application.DTOs;
 using ResolveAI.Domain.Entities;
@@ -17,17 +18,28 @@ public class DepartmentsController : ControllerBase
         _context = context;
     }
 
-    //all department 
+    // =========================================================
+    // GET ALL DEPARTMENTS
+    // =========================================================
+
     [HttpGet]
     public async Task<IActionResult> GetDepartments()
     {
         var departments = await _context.Departments.ToListAsync();
+
         return Ok(departments);
     }
 
-    // new
+
+    // =========================================================
+    // CREATE DEPARTMENT
+    // Only Admin can create department
+    // =========================================================
+
+    [Authorize(Roles = "Admin")]
     [HttpPost]
-    public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest request)
+    public async Task<IActionResult> CreateDepartment(
+        [FromBody] CreateDepartmentRequest request)
     {
         var department = new Department
         {
@@ -37,8 +49,13 @@ public class DepartmentsController : ControllerBase
         };
 
         _context.Departments.Add(department);
+
         await _context.SaveChangesAsync();
 
-        return Ok(new { Message = "Department created successfully!", Id = department.Id });
+        return Ok(new
+        {
+            Message = "Department created successfully!",
+            Id = department.Id
+        });
     }
 }

@@ -1,5 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Hangfire;
+
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 using ResolveAI.Application.DTOs;
 using ResolveAI.Domain.Entities;
 using ResolveAI.Domain.Enums;
@@ -22,9 +26,13 @@ public class KnowledgeController : ControllerBase
         _environment = environment;
     }
 
+
     // =========================================================
     // 1. CREATE KNOWLEDGE CATEGORY
+    // Only Admin or KnowledgeManager can create category
     // =========================================================
+
+    [Authorize(Roles = "Admin,KnowledgeManager")]
     [HttpPost("categories")]
     public async Task<IActionResult> CreateCategory(
         [FromBody] CreateKnowledgeCategoryRequest request)
@@ -47,6 +55,7 @@ public class KnowledgeController : ControllerBase
     // =========================================================
     // 2. UPLOAD PDF
     // =========================================================
+
     [HttpPost("upload-pdf")]
     public async Task<IActionResult> UploadDocument(
         IFormFile file,
@@ -59,7 +68,11 @@ public class KnowledgeController : ControllerBase
             return BadRequest("No file uploaded.");
         }
 
-        // Check category exists
+
+        // =====================================================
+        // CHECK CATEGORY
+        // =====================================================
+
         var categoryExists = await _context.KnowledgeCategories
             .AnyAsync(c => c.Id == categoryId);
 
@@ -68,7 +81,11 @@ public class KnowledgeController : ControllerBase
             return BadRequest("Knowledge category not found.");
         }
 
-        // Check user exists
+
+        // =====================================================
+        // CHECK USER
+        // =====================================================
+
         var userExists = await _context.Users
             .AnyAsync(u => u.Id == userId);
 
@@ -77,7 +94,11 @@ public class KnowledgeController : ControllerBase
             return BadRequest("User not found.");
         }
 
-        // Create Uploads folder
+
+        // =====================================================
+        // CREATE UPLOADS FOLDER
+        // =====================================================
+
         var uploadsFolder = Path.Combine(
             _environment.WebRootPath ?? "wwwroot",
             "Uploads");
@@ -87,7 +108,11 @@ public class KnowledgeController : ControllerBase
             Directory.CreateDirectory(uploadsFolder);
         }
 
-        // Generate unique file name
+
+        // =====================================================
+        // GENERATE UNIQUE FILE NAME
+        // =====================================================
+
         var fileName =
             Guid.NewGuid().ToString()
             + Path.GetExtension(file.FileName);
@@ -96,7 +121,11 @@ public class KnowledgeController : ControllerBase
             uploadsFolder,
             fileName);
 
-        // Save file
+
+        // =====================================================
+        // SAVE FILE
+        // =====================================================
+
         using (var stream = new FileStream(
             filePath,
             FileMode.Create))
@@ -104,7 +133,21 @@ public class KnowledgeController : ControllerBase
             await file.CopyToAsync(stream);
         }
 
-        // Create knowledge article
+
+        // =====================================================
+        // HANGFIRE BACKGROUND JOB
+        // =====================================================
+
+        BackgroundJob.Enqueue(() =>
+            Console.WriteLine(
+                $"Processing PDF: {file.FileName}"
+            ));
+
+
+        // =====================================================
+        // CREATE KNOWLEDGE ARTICLE
+        // =====================================================
+
         var article = new KnowledgeArticle
         {
             Id = Guid.NewGuid(),
@@ -128,13 +171,24 @@ public class KnowledgeController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
+
+        // =====================================================
+        // SAVE ARTICLE
+        // =====================================================
+
         _context.KnowledgeArticles.Add(article);
 
         await _context.SaveChangesAsync();
 
+
+        // =====================================================
+        // RESPONSE
+        // =====================================================
+
         return Accepted(new
         {
             Message = "Document uploaded and queued for processing.",
+
             ArticleId = article.Id
         });
     }
@@ -143,6 +197,7 @@ public class KnowledgeController : ControllerBase
     // =========================================================
     // 3. CONVERT RESOLVED TICKET TO KNOWLEDGE
     // =========================================================
+
     [HttpPost("convert-ticket/{ticketId}")]
     public async Task<IActionResult> ConvertTicket(
         Guid ticketId,
@@ -157,12 +212,14 @@ public class KnowledgeController : ControllerBase
             return NotFound("Ticket not found.");
         }
 
+
         // 2. Ticket must be Resolved
         if (ticket.Status != TicketStatus.Resolved)
         {
             return BadRequest(
                 "Only resolved tickets can be converted.");
         }
+
 
         // 3. Check category exists
         var categoryExists = await _context.KnowledgeCategories
@@ -174,6 +231,7 @@ public class KnowledgeController : ControllerBase
                 "The Category ID you provided does not exist in KnowledgeCategories table.");
         }
 
+
         // 4. Check ticket creator exists
         var userExists = await _context.Users
             .AnyAsync(u => u.Id == ticket.CreatedById);
@@ -183,6 +241,7 @@ public class KnowledgeController : ControllerBase
             return BadRequest(
                 "The User who created this ticket no longer exists.");
         }
+
 
         // 5. Create knowledge article
         var article = new KnowledgeArticle
@@ -206,10 +265,12 @@ public class KnowledgeController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
+
         // 6. Save article
         _context.KnowledgeArticles.Add(article);
 
         await _context.SaveChangesAsync();
+
 
         // 7. Success response
         return Ok(new
@@ -224,6 +285,7 @@ public class KnowledgeController : ControllerBase
     // =========================================================
     // 4. ARCHIVE KNOWLEDGE ARTICLE
     // =========================================================
+
     [HttpPatch("articles/{id}/archive")]
     public async Task<IActionResult> ArchiveArticle(Guid id)
     {
@@ -236,11 +298,14 @@ public class KnowledgeController : ControllerBase
             return NotFound("Knowledge article not found.");
         }
 
+
         // Change status
         article.Status = KnowledgeStatus.Archived;
 
+
         // Save
         await _context.SaveChangesAsync();
+
 
         return Ok(new
         {

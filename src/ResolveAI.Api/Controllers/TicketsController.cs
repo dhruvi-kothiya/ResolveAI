@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 using ResolveAI.Application.DTOs;
@@ -27,8 +28,10 @@ public class TicketsController : ControllerBase
 
     // =========================================================
     // CREATE TICKET
+    // Only Employee can create ticket
     // =========================================================
 
+    [Authorize(Roles = "Employee")]
     [HttpPost]
     public async Task<IActionResult> CreateTicket(
         [FromBody] CreateTicketRequest request)
@@ -125,16 +128,45 @@ public class TicketsController : ControllerBase
 
     // =========================================================
     // GET ALL TICKETS
+    // Only Admin or Agent can see all tickets
     // =========================================================
 
+    [Authorize(Roles = "Admin,Agent")]
     [HttpGet]
-    public async Task<IActionResult> GetAllTickets()
+    public async Task<IActionResult> GetAllTickets(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
     {
+        // Page number minimum 1
+        if (page < 1)
+        {
+            page = 1;
+        }
+
+        // Page size minimum 1
+        if (pageSize < 1)
+        {
+            pageSize = 10;
+        }
+
+        // Maximum 100 tickets per page
+        if (pageSize > 100)
+        {
+            pageSize = 100;
+        }
+
         var tickets = await _context.Tickets
             .OrderByDescending(t => t.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
-        return Ok(tickets);
+        return Ok(new
+        {
+            Data = tickets,
+            Page = page,
+            PageSize = pageSize
+        });
     }
 
 

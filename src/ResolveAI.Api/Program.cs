@@ -1,3 +1,6 @@
+using Hangfire;
+using Hangfire.SqlServer;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +24,11 @@ var builder = WebApplication.CreateBuilder(args);
 // =========================================================
 
 builder.Services.AddControllers();
+
 builder.Services.AddOpenApi();
+
+// GLOBAL ERROR HANDLING
+builder.Services.AddProblemDetails();
 
 
 // =========================================================
@@ -103,6 +110,21 @@ builder.Services.AddAuthentication(options =>
 
 
 // =========================================================
+// HANGFIRE SETUP
+// =========================================================
+
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    ));
+
+builder.Services.AddHangfireServer();
+
+
+// =========================================================
 // BUILD APP
 // =========================================================
 
@@ -123,11 +145,35 @@ if (app.Environment.IsDevelopment())
 // MIDDLEWARE
 // =========================================================
 
+// GLOBAL ERROR HANDLER
+app.UseExceptionHandler();
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+
+// =========================================================
+// HANGFIRE DASHBOARD
+// =========================================================
+
+app.UseHangfireDashboard();
+
+
+// =========================================================
+// HEALTH CHECK
+// =========================================================
+
+app.MapGet("/health", () =>
+{
+    return Results.Ok(new
+    {
+        status = "Healthy",
+        timestamp = DateTime.UtcNow
+    });
+});
 
 
 // =========================================================
@@ -158,7 +204,9 @@ using (var scope = app.Services.CreateScope())
         "Admin",
         "Agent",
         "Employee",
-        "Manager"
+        "Manager",
+        "TeamLead",
+        "KnowledgeManager"
     };
 
     foreach (var roleName in roles)
