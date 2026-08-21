@@ -1,6 +1,7 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Identity; 
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using ResolveAI.Application.Interfaces;
@@ -11,11 +12,17 @@ namespace ResolveAI.Infrastructure.Identity;
 public class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly IConfiguration _config;
-    public JwtTokenGenerator(IConfiguration config) => _config = config;
+    private readonly UserManager<User> _userManager; 
+
+    public JwtTokenGenerator(IConfiguration config, UserManager<User> userManager)
+    {
+        _config = config;
+        _userManager = userManager;
+    }
 
     public string GenerateToken(User user)
     {
-        // user detail add tokan
+        // all detail
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -23,11 +30,16 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new Claim("FirstName", user.FirstName)
         };
 
-        //
+        // 
+        var roles = _userManager.GetRolesAsync(user).Result;
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        // tokan creat
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],
             audience: _config["Jwt:Audience"],

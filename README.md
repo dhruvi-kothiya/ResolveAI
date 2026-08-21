@@ -48,7 +48,7 @@ The system is designed to automate IT support workflows using intelligent ticket
   - Preparations for RAG (Retrieval-Augmented Generation)
   - PDF Uploads and Ticket-to-Knowledge conversion completed,Versioning, and Background Processing.
   - Infrastructure:** Hangfire Dashboard integrated at `/hangfire`.
-  - Enterprise Standards:** Global Error Handling (ProblemDetails) and Pagination implemented.
+  - Enterprise Standards:** Global Error Handling (ProblemDetails) and Pagination implemented,Observability:** Correlation IDs added to every request header.
 
 ## 🧠 Smart Features
 

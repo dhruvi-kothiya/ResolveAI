@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,13 +17,19 @@ public class TicketsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly INotificationService _notificationService;
+    private readonly UserManager<User> _userManager;
+    private readonly IAuditService _auditService;
 
     public TicketsController(
         ApplicationDbContext context,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        UserManager<User> userManager,
+        IAuditService auditService)
     {
         _context = context;
         _notificationService = notificationService;
+        _userManager = userManager;
+        _auditService = auditService;
     }
 
 
@@ -36,7 +43,10 @@ public class TicketsController : ControllerBase
     public async Task<IActionResult> CreateTicket(
         [FromBody] CreateTicketRequest request)
     {
-        // 1. Ticket create
+        // =====================================================
+        // 1. CREATE TICKET
+        // =====================================================
+
         var ticket = new Ticket
         {
             Id = Guid.NewGuid(),
@@ -61,8 +71,6 @@ public class TicketsController : ControllerBase
         // 2. AI & SLA LOGIC
         // =====================================================
 
-        // VPN અથવા Network issue હોય તો High Priority
-
         if (ticket.Description.Contains(
                 "VPN",
                 StringComparison.OrdinalIgnoreCase)
@@ -76,8 +84,9 @@ public class TicketsController : ControllerBase
         }
 
 
-        // High Priority = 4 Hours
-        // Medium Priority = 24 Hours
+        // =====================================================
+        // 3. SLA DUE DATE
+        // =====================================================
 
         ticket.DueAt =
             ticket.Priority == TicketPriority.High
@@ -86,7 +95,27 @@ public class TicketsController : ControllerBase
 
 
         // =====================================================
-        // 3. SAVE TICKET
+        // 4. AUTOMATIC AGENT ASSIGNMENT
+        // =====================================================
+
+        var agents =
+            await _userManager.GetUsersInRoleAsync("Agent");
+
+        var assignedAgent =
+            agents.FirstOrDefault();
+
+        if (assignedAgent != null)
+        {
+            ticket.AssignedToId =
+                assignedAgent.Id;
+
+            ticket.Status =
+                TicketStatus.Open;
+        }
+
+
+        // =====================================================
+        // 5. SAVE TICKET
         // =====================================================
 
         _context.Tickets.Add(ticket);
@@ -95,7 +124,7 @@ public class TicketsController : ControllerBase
 
 
         // =====================================================
-        // 4. SEND NOTIFICATION
+        // 6. SEND NOTIFICATION TO EMPLOYEE
         // =====================================================
 
         await _notificationService.SendNotificationAsync(
@@ -108,20 +137,43 @@ public class TicketsController : ControllerBase
 
 
         // =====================================================
-        // 5. RESPONSE
+        // 7. AUDIT LOG
+        // =====================================================
+
+        await _auditService.LogAsync(
+            ticket.CreatedById,
+            "Created Ticket",
+            "Tickets",
+            ticket.TicketNumber
+        );
+
+
+        // =====================================================
+        // 8. RESPONSE
         // =====================================================
 
         return Ok(new
         {
-            Message = "Ticket and Notification Created!",
+            Message =
+                "Ticket, Notification & Audit Log Created!",
 
-            TicketNumber = ticket.TicketNumber,
+            TicketNumber =
+                ticket.TicketNumber,
 
-            Priority = ticket.Priority.ToString(),
+            Status =
+                ticket.Status.ToString(),
 
-            AiProcessed = ticket.IsAiProcessed,
+            AssignedTo =
+                assignedAgent?.UserName,
 
-            Deadline = ticket.DueAt
+            Priority =
+                ticket.Priority.ToString(),
+
+            AiProcessed =
+                ticket.IsAiProcessed,
+
+            Deadline =
+                ticket.DueAt
         });
     }
 
@@ -179,7 +231,8 @@ public class TicketsController : ControllerBase
         Guid id,
         [FromBody] TicketStatus newStatus)
     {
-        var ticket = await _context.Tickets.FindAsync(id);
+        var ticket =
+            await _context.Tickets.FindAsync(id);
 
         if (ticket == null)
         {
@@ -194,25 +247,37 @@ public class TicketsController : ControllerBase
         // Resolved થાય ત્યારે ResolvedAt set કરો
         if (newStatus == TicketStatus.Resolved)
         {
-            ticket.ResolvedAt = DateTime.UtcNow;
+            ticket.ResolvedAt =
+                DateTime.UtcNow;
         }
 
 
         await _context.SaveChangesAsync();
 
 
-        // Response
+        // =====================================================
+        // RESPONSE
+        // =====================================================
+
         return Ok(new
         {
-            Message = "Ticket Status Updated Successfully!",
+            Message =
+                "Ticket Status Updated Successfully!",
 
-            TicketNumber = ticket.TicketNumber,
+            TicketNumber =
+                ticket.TicketNumber,
 
-            Priority = ticket.Priority.ToString(),
+            Status =
+                ticket.Status.ToString(),
 
-            AiProcessed = ticket.IsAiProcessed,
+            Priority =
+                ticket.Priority.ToString(),
 
-            Deadline = ticket.DueAt
+            AiProcessed =
+                ticket.IsAiProcessed,
+
+            Deadline =
+                ticket.DueAt
         });
     }
 }

@@ -62,7 +62,10 @@ public class KnowledgeController : ControllerBase
         [FromQuery] Guid categoryId,
         [FromQuery] Guid userId)
     {
-        // Check file
+        // =====================================================
+        // CHECK FILE
+        // =====================================================
+
         if (file == null || file.Length == 0)
         {
             return BadRequest("No file uploaded.");
@@ -135,16 +138,6 @@ public class KnowledgeController : ControllerBase
 
 
         // =====================================================
-        // HANGFIRE BACKGROUND JOB
-        // =====================================================
-
-        BackgroundJob.Enqueue(() =>
-            Console.WriteLine(
-                $"Processing PDF: {file.FileName}"
-            ));
-
-
-        // =====================================================
         // CREATE KNOWLEDGE ARTICLE
         // =====================================================
 
@@ -182,12 +175,24 @@ public class KnowledgeController : ControllerBase
 
 
         // =====================================================
+        // PHASE 7 / SECTION 44
+        // HANGFIRE BACKGROUND JOB
+        // AI EXTRACTION STARTED
+        // =====================================================
+
+        BackgroundJob.Enqueue(() =>
+            Console.WriteLine(
+                $"AI Extraction started for Article: {article.Id}"
+            ));
+
+
+        // =====================================================
         // RESPONSE
         // =====================================================
 
         return Accepted(new
         {
-            Message = "Document uploaded and queued for processing.",
+            Message = "Document uploaded and queued for AI extraction.",
 
             ArticleId = article.Id
         });
@@ -203,7 +208,10 @@ public class KnowledgeController : ControllerBase
         Guid ticketId,
         [FromQuery] Guid categoryId)
     {
-        // 1. Find ticket
+        // =====================================================
+        // 1. FIND TICKET
+        // =====================================================
+
         var ticket = await _context.Tickets
             .FindAsync(ticketId);
 
@@ -213,7 +221,10 @@ public class KnowledgeController : ControllerBase
         }
 
 
-        // 2. Ticket must be Resolved
+        // =====================================================
+        // 2. TICKET MUST BE RESOLVED
+        // =====================================================
+
         if (ticket.Status != TicketStatus.Resolved)
         {
             return BadRequest(
@@ -221,7 +232,10 @@ public class KnowledgeController : ControllerBase
         }
 
 
-        // 3. Check category exists
+        // =====================================================
+        // 3. CHECK CATEGORY EXISTS
+        // =====================================================
+
         var categoryExists = await _context.KnowledgeCategories
             .AnyAsync(c => c.Id == categoryId);
 
@@ -232,7 +246,10 @@ public class KnowledgeController : ControllerBase
         }
 
 
-        // 4. Check ticket creator exists
+        // =====================================================
+        // 4. CHECK TICKET CREATOR EXISTS
+        // =====================================================
+
         var userExists = await _context.Users
             .AnyAsync(u => u.Id == ticket.CreatedById);
 
@@ -243,7 +260,10 @@ public class KnowledgeController : ControllerBase
         }
 
 
-        // 5. Create knowledge article
+        // =====================================================
+        // 5. CREATE KNOWLEDGE ARTICLE
+        // =====================================================
+
         var article = new KnowledgeArticle
         {
             Id = Guid.NewGuid(),
@@ -266,13 +286,19 @@ public class KnowledgeController : ControllerBase
         };
 
 
-        // 6. Save article
+        // =====================================================
+        // 6. SAVE ARTICLE
+        // =====================================================
+
         _context.KnowledgeArticles.Add(article);
 
         await _context.SaveChangesAsync();
 
 
-        // 7. Success response
+        // =====================================================
+        // 7. SUCCESS RESPONSE
+        // =====================================================
+
         return Ok(new
         {
             Message = "Ticket converted to Knowledge Article!",
@@ -289,7 +315,10 @@ public class KnowledgeController : ControllerBase
     [HttpPatch("articles/{id}/archive")]
     public async Task<IActionResult> ArchiveArticle(Guid id)
     {
-        // Find article
+        // =====================================================
+        // FIND ARTICLE
+        // =====================================================
+
         var article = await _context.KnowledgeArticles
             .FindAsync(id);
 
@@ -299,13 +328,23 @@ public class KnowledgeController : ControllerBase
         }
 
 
-        // Change status
+        // =====================================================
+        // CHANGE STATUS
+        // =====================================================
+
         article.Status = KnowledgeStatus.Archived;
 
 
-        // Save
+        // =====================================================
+        // SAVE
+        // =====================================================
+
         await _context.SaveChangesAsync();
 
+
+        // =====================================================
+        // RESPONSE
+        // =====================================================
 
         return Ok(new
         {

@@ -1,6 +1,4 @@
 using Hangfire;
-using Hangfire.SqlServer;
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +6,9 @@ using Microsoft.IdentityModel.Tokens;
 
 using ResolveAI.Application.Interfaces;
 using ResolveAI.Domain.Entities;
+using ResolveAI.Infrastructure.BackgroundJobs;
 using ResolveAI.Infrastructure.Identity;
+using ResolveAI.Infrastructure.Middleware;
 using ResolveAI.Infrastructure.Notifications;
 using ResolveAI.Infrastructure.Notifications.SignalR;
 using ResolveAI.Infrastructure.Persistence;
@@ -20,19 +20,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 // =========================================================
-// BASIC SERVICES
+// BASIC SERVICES & ERROR HANDLING (Section 34)
 // =========================================================
 
 builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
 
-// GLOBAL ERROR HANDLING
 builder.Services.AddProblemDetails();
+
+builder.Services.AddMemoryCache();
 
 
 // =========================================================
-// DATABASE - SQL SERVER
+// DATABASE - SQL SERVER (Section 2025)
 // =========================================================
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -56,7 +57,7 @@ builder.Services.AddIdentity<User, Role>(options =>
 
 
 // =========================================================
-// APPLICATION SERVICES
+// APPLICATION SERVICES (Dependencies - Section 4)
 // =========================================================
 
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -65,16 +66,28 @@ builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+builder.Services.AddScoped<IAuditService, AuditService>();
+
 
 // =========================================================
-// SIGNALR
+// SIGNALR & HANGFIRE (Section 16 & 43)
 // =========================================================
 
 builder.Services.AddSignalR();
 
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    ));
+
+builder.Services.AddHangfireServer();
+
 
 // =========================================================
-// JWT AUTHENTICATION
+// JWT AUTHENTICATION (Section 1)
 // =========================================================
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -93,46 +106,34 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
+    options.TokenValidationParameters =
+        new TokenValidationParameters
+        {
+            ValidateIssuer = true,
 
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
+            ValidateAudience = true,
 
-        IssuerSigningKey =
-            new SymmetricSecurityKey(key)
-    };
+            ValidateLifetime = true,
+
+            ValidateIssuerSigningKey = true,
+
+            ValidIssuer =
+                jwtSettings["Issuer"],
+
+            ValidAudience =
+                jwtSettings["Audience"],
+
+            IssuerSigningKey =
+                new SymmetricSecurityKey(key)
+        };
 });
 
-
-// =========================================================
-// HANGFIRE SETUP
-// =========================================================
-
-builder.Services.AddHangfire(configuration => configuration
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UseSqlServerStorage(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    ));
-
-builder.Services.AddHangfireServer();
-
-
-// =========================================================
-// BUILD APP
-// =========================================================
 
 var app = builder.Build();
 
 
 // =========================================================
-// OPEN API
+// MIDDLEWARE & DASHBOARDS
 // =========================================================
 
 if (app.Environment.IsDevelopment())
@@ -142,11 +143,18 @@ if (app.Environment.IsDevelopment())
 
 
 // =========================================================
-// MIDDLEWARE
+// EXCEPTION HANDLING
 // =========================================================
 
-// GLOBAL ERROR HANDLER
 app.UseExceptionHandler();
+
+
+// =========================================================
+// CORRELATION ID MIDDLEWARE
+// =========================================================
+
+app.UseMiddleware<CorrelationIdMiddleware>();
+
 
 app.UseHttpsRedirection();
 
@@ -154,50 +162,48 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-
-// =========================================================
-// HANGFIRE DASHBOARD
-// =========================================================
-
 app.UseHangfireDashboard();
 
 
 // =========================================================
-// HEALTH CHECK
+// HEALTH CHECK (Section 79)
 // =========================================================
 
-app.MapGet("/health", () =>
-{
-    return Results.Ok(new
-    {
-        status = "Healthy",
-        timestamp = DateTime.UtcNow
-    });
-});
+app.MapGet(
+    "/health",
+    () => Results.Ok(
+        new
+        {
+            status = "Healthy",
+            timestamp = DateTime.UtcNow
+        }
+    )
+);
 
 
 // =========================================================
-// SIGNALR HUB
+// SIGNALR
 // =========================================================
 
 app.MapHub<NotificationHub>("/notificationHub");
 
 
 // =========================================================
-// API CONTROLLERS
+// CONTROLLERS
 // =========================================================
 
 app.MapControllers();
 
 
 // =========================================================
-// ROLE SEEDING
+// ROLE SEEDING (Section 8)
 // =========================================================
 
 using (var scope = app.Services.CreateScope())
 {
     var roleManager =
-        scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+        scope.ServiceProvider
+            .GetRequiredService<RoleManager<Role>>();
 
     string[] roles =
     {
@@ -225,7 +231,14 @@ using (var scope = app.Services.CreateScope())
 
 
 // =========================================================
-// RUN APPLICATION
+// SLA BACKGROUND JOB
 // =========================================================
+
+RecurringJob.AddOrUpdate<SlaMonitorJob>(
+    "CheckSlaBreach",
+    job => job.CheckSlaBreaches(),
+    Cron.Minutely
+);
+
 
 app.Run();
